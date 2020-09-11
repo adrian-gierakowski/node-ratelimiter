@@ -73,23 +73,32 @@ Limiter.prototype.get = function (fn) {
     ['pexpire', key, duration],
   ]
 
-  db.multi(operations)
-    .exec(function (err, res) {
-      if (err) return fn(err);
+  function handleResult(err, res) {
+    if (err) return fn(err);
 
-      var isIoRedis = Array.isArray(res[0]);
-      var count = parseInt(isIoRedis ? res[1][1] : res[1]);
-      var oldest = parseInt(isIoRedis ? res[3][1] : res[3]);
-      var oldestInRange = parseInt(isIoRedis ? res[4][1] : res[4]);
-      var resetMicro = (Number.isNaN(oldestInRange) ? oldest : oldestInRange) + duration * 1000;
+    var isIoRedis = Array.isArray(res[0]);
+    var count = parseInt(isIoRedis ? res[1][1] : res[1]);
+    var oldest = parseInt(isIoRedis ? res[3][1] : res[3]);
+    var oldestInRange = parseInt(isIoRedis ? res[4][1] : res[4]);
+    var resetMicro = (Number.isNaN(oldestInRange) ? oldest : oldestInRange) + duration * 1000;
 
-      fn(null, {
-        remaining: count < max ? max - count : 0,
-        reset: Math.floor(resetMicro / 1000000),
-        resetMs: Math.floor(resetMicro / 1000),
-        total: max
-      });
+    fn(null, {
+      remaining: count < max ? max - count : 0,
+      reset: Math.floor(resetMicro / 1000000),
+      resetMs: Math.floor(resetMicro / 1000),
+      total: max
     });
+  }
+
+  if (db.rawCall) {
+    // redis-fast-driver
+    db.rawCall(['multi'])
+    for (var op of operations) db.rawCall(op)
+    db.rawCall(['exec'], handleResult)
+  } else {
+    // redis or ioRedis
+    db.multi(operations).exec(handleResult)
+  }
 };
 
 /**

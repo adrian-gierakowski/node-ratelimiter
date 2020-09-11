@@ -18,6 +18,8 @@
     "ioredis": "4.14.1",
     "mocha": "*",
     "redis": "2.8.0",
+    "redis-commands": "^1.6.0",
+    "redis-fast-driver": "^2.1.5",
     "should": "*"
   },
   "license": "MIT",

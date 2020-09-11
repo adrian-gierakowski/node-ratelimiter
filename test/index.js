@@ -6,9 +6,13 @@ var Limiter = require('..'),
 // debug logs from the node-redis module.
 //redis.debug_mode = true;
 
-['redis', 'ioredis'].forEach(function(redisModuleName) {
-  var redisModule = require(redisModuleName);
-  var db = require(redisModuleName).createClient();
+['redis', 'ioredis', 'redis-fast-driver'].forEach(function(redisModuleName) {
+  var redisModule = redisModuleName === 'redis-fast-driver'
+    ? require('./redis-fast-driver-adapter')
+    : require(redisModuleName);
+
+  var db = redisModule.createClient();
+
   describe('Limiter with ' + redisModuleName, function() {
     beforeEach(function(done) {
       db.keys('limit:*', function(err, keys) {
